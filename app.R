@@ -1,7 +1,7 @@
 packageList = c('shiny', 'ggplot2', 'reshape2')
-for (i in 1:length(packageList)) {
+for (i in packageList) {
   if(!(i %in% rownames(installed.packages()))) {
-    install.packages(packageList[i])
+    install.packages(i)
   }
 }
 library(shiny)
