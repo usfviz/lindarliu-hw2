@@ -127,4 +127,4 @@ shinyServer<- function(input, output){
 }
 
    
-shinyApp(list(ui=shinyUI,server=shinyServer))
+shinyApp(ui=shinyUI,server=shinyServer)
