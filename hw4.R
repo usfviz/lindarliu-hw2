@@ -1,5 +1,5 @@
-packageList = c('shiny', 'ggplot2', 'reshape2')
-for (i in 1:length(packageList)) {
+packageList = c('shiny', 'ggplot2', 'reshape2','dplyr','tidyr','stringr')
+for (i in packageList) {
   if(!(i %in% rownames(installed.packages()))) {
     install.packages(packageList[i])
   }
@@ -7,31 +7,34 @@ for (i in 1:length(packageList)) {
 library(shiny)
 library(ggplot2)
 library(reshape2)
+library(dplyr)
+library(tidyr)
+library(stringr)
 
-r1 <-  readLines("API_SP.DYN.LE00.IN_DS2_en_csv_v2.csv")
-r1 <- r1[5:length(r1)]
-expect <- read.csv(textConnection(r1))
-expect<-melt(expect,c('Country.Name','Country.Code','Indicator.Name','Indicator.Code'),variable.name='Year',value.name='Expectancy')[c('Country.Name','Country.Code','Year','Expectancy')]
+#setwd('/Users/linda/msan622/lesson4/')
 
-r2<- readLines('API_SP.DYN.TFRT.IN_DS2_en_csv_v2.csv')
-r2 <- r2[5:length(r2)]
-fert<-read.csv(textConnection(r2))
-fert<-melt(fert,c('Country.Name','Country.Code','Indicator.Name','Indicator.Code'),variable.name='Year',value.name='Fertility')[c('Country.Name','Country.Code','Year','Fertility')]
+expect <- read.csv("API_SP.DYN.LE00.IN_DS2_en_csv_v2.csv", skip = 4, header = TRUE) %>%
+  gather('Year',Expectancy,X1960:X,na.rm=TRUE) %>%
+  mutate(Year = as.integer(str_extract(Year, "\\d+"))) %>%
+  select(c(Country.Name,Country.Code,Year,Expectancy))
 
-r3 <- readLines('API_SP.POP.TOTL_DS2_en_csv_v2.csv')
-r3 <- r3[5:length(r3)]
-pop<-read.csv(textConnection(r3))
-pop<-melt(pop,c('Country.Name','Country.Code','Indicator.Name','Indicator.Code'),variable.name='Year',value.name='Population')[c('Country.Name','Country.Code','Year','Population')]
+fert <- read.csv("API_SP.DYN.TFRT.IN_DS2_en_csv_v2.csv", skip = 4, header = TRUE) %>%
+  gather('Year',Fertility,X1960:X,na.rm=TRUE) %>%
+  mutate(Year = as.integer(str_extract(Year, "\\d+"))) %>%
+  select(c(Country.Code,Year,Fertility))
 
-r4<- read.csv('Metadata_Country_API_SP.DYN.TFRT.IN_DS2_en_csv_v2.csv')
-d <- merge(expect, fert[c('Country.Code','Year','Fertility')], by = c('Country.Code','Year'))
-d <- merge(d, pop[c('Country.Code','Year','Population')], by = c('Country.Code','Year'))
-d <-merge(d, r4[c('Country.Code','Region')], by = 'Country.Code')
+pop <- read.csv('API_SP.POP.TOTL_DS2_en_csv_v2.csv',skip = 4, header = TRUE) %>%
+  gather('Year',Population,X1960:X,na.rm=TRUE) %>%
+  mutate(Year = as.integer(str_extract(Year, "\\d+"))) %>%
+  select(c(Country.Code,Year,Population))
 
-d$Year <-substring(d$Year, 2)
-d<-d[complete.cases(d),]
-d<-subset(d,d$Region!="")
-d$Year<-as.integer(d$Year)
+region<- read.csv('Metadata_Country_API_SP.DYN.TFRT.IN_DS2_en_csv_v2.csv')
+
+d <- expect  %>% 
+  inner_join(fert,by=c('Country.Code','Year')) %>%
+  inner_join(pop,by = c('Country.Code','Year')) %>%
+  inner_join(region[c('Country.Code','Region')],by='Country.Code') %>%
+  filter(Region!="")
 
 
 shinyUI<-fluidPage(
